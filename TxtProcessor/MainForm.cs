@@ -9,6 +9,7 @@ namespace TxtProcessor
 {
     public class MainForm : Form
     {
+        // Controles de la interfaz
         private Button btnNuevo;
         private Button btnCargar;
         private Button btnGuardar;
@@ -20,14 +21,53 @@ namespace TxtProcessor
         private RichTextBox rtbContenido;
         private Panel panelBotones;
 
+        // Variables de estado
         private string rutaArchivoActual = string.Empty;
         private bool haycambios = false;
 
+        // 1. CONSTRUCTOR ORIGINAL: Usado cuando abres el bloc de notas por sí solo
         public MainForm()
         {
             InicializarComponentes();
+            ActualizarStatus();
         }
 
+        // 2. NUEVO CONSTRUCTOR SOBRECARGADO: Usado por tu explorador de archivos principal
+        public MainForm(string ruta)
+        {
+            InicializarComponentes();
+
+            // Usamos el evento Load para garantizar que la UI exista en memoria
+            // antes de inyectar las líneas de texto del archivo
+            this.Load += (s, e) => CargarArchivoDirecto(ruta);
+        }
+
+        // 3. NUEVO MÉTODO: Centraliza la lógica de lectura directa sin cuadros de diálogo
+        public void CargarArchivoDirecto(string ruta)
+        {
+            try
+            {
+                rutaArchivoActual = ruta;
+
+                // Leemos todo el contenido del archivo de texto plano
+                rtbContenido.Text = File.ReadAllText(ruta, Encoding.UTF8);
+
+                // Al cargar un archivo limpio, reseteamos el estado de modificación
+                haycambios = false;
+
+                // Actualizamos los elementos visuales con la información cargada
+                lblArchivo.Text = $"Archivo: {rutaArchivoActual}";
+                ActualizarStatus();
+                HabilitarControles(true);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al cargar el archivo de texto:\n{ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // ─── DISEÑO Y CONSTRUCCIÓN DE INTERFAZ ──────────────────────────────────
         private void InicializarComponentes()
         {
             this.Text = "Procesador de Archivos de Texto";
@@ -36,7 +76,7 @@ namespace TxtProcessor
             this.MinimumSize = new System.Drawing.Size(600, 400);
             this.FormClosing += MainForm_FormClosing;
 
-            // Panel botones
+            // Panel superior para la botonera
             panelBotones = new Panel();
             panelBotones.Dock = DockStyle.Top;
             panelBotones.Height = 45;
@@ -45,65 +85,60 @@ namespace TxtProcessor
             btnNuevo = new Button();
             btnNuevo.Text = "Nuevo";
             btnNuevo.Location = new System.Drawing.Point(5, 8);
-            btnNuevo.Size = new System.Drawing.Size(75, 28);
+            btnNuevo.Size = new System.Drawing.Size(100, 28);
             btnNuevo.Click += BtnNuevo_Click;
 
             btnCargar = new Button();
-            btnCargar.Text = "Abrir";
-            btnCargar.Location = new System.Drawing.Point(90, 8);
-            btnCargar.Size = new System.Drawing.Size(75, 28);
+            btnCargar.Text = "Abrir Archivo";
+            btnCargar.Location = new System.Drawing.Point(115, 8);
+            btnCargar.Size = new System.Drawing.Size(100, 28);
             btnCargar.Click += BtnCargar_Click;
 
             btnGuardar = new Button();
             btnGuardar.Text = "Guardar";
-            btnGuardar.Location = new System.Drawing.Point(175, 8);
-            btnGuardar.Size = new System.Drawing.Size(75, 28);
+            btnGuardar.Location = new System.Drawing.Point(225, 8);
+            btnGuardar.Size = new System.Drawing.Size(100, 28);
             btnGuardar.Enabled = false;
             btnGuardar.Click += BtnGuardar_Click;
 
             btnGuardarComo = new Button();
-            btnGuardarComo.Text = "Guardar como";
-            btnGuardarComo.Location = new System.Drawing.Point(260, 8);
-            btnGuardarComo.Size = new System.Drawing.Size(100, 28);
+            btnGuardarComo.Text = "Guardar Como";
+            btnGuardarComo.Location = new System.Drawing.Point(335, 8);
+            btnGuardarComo.Size = new System.Drawing.Size(110, 28);
             btnGuardarComo.Enabled = false;
             btnGuardarComo.Click += BtnGuardarComo_Click;
 
             btnBuscarReemplazar = new Button();
             btnBuscarReemplazar.Text = "Buscar / Reemplazar";
-            btnBuscarReemplazar.Location = new System.Drawing.Point(370, 8);
-            btnBuscarReemplazar.Size = new System.Drawing.Size(145, 28);
+            btnBuscarReemplazar.Location = new System.Drawing.Point(455, 8);
+            btnBuscarReemplazar.Size = new System.Drawing.Size(140, 28);
             btnBuscarReemplazar.Enabled = false;
             btnBuscarReemplazar.Click += BtnBuscarReemplazar_Click;
 
             btnEstadisticas = new Button();
             btnEstadisticas.Text = "Estadísticas";
-            btnEstadisticas.Location = new System.Drawing.Point(525, 8);
-            btnEstadisticas.Size = new System.Drawing.Size(95, 28);
+            btnEstadisticas.Location = new System.Drawing.Point(605, 8);
+            btnEstadisticas.Size = new System.Drawing.Size(100, 28);
             btnEstadisticas.Enabled = false;
             btnEstadisticas.Click += BtnEstadisticas_Click;
 
-            panelBotones.Controls.AddRange(new Control[] {
-                btnNuevo, btnCargar, btnGuardar, btnGuardarComo,
-                btnBuscarReemplazar, btnEstadisticas
-            });
+            panelBotones.Controls.AddRange(new Control[] { btnNuevo, btnCargar, btnGuardar, btnGuardarComo, btnBuscarReemplazar, btnEstadisticas });
 
-            // Label archivo
+            // Etiqueta indicadora del archivo actual
             lblArchivo = new Label();
             lblArchivo.Dock = DockStyle.Top;
             lblArchivo.Height = 22;
             lblArchivo.Padding = new Padding(5, 3, 0, 0);
-            lblArchivo.Text = "Ningún archivo abierto";
+            lblArchivo.Text = "Ningún archivo activo";
 
-            // Editor de texto
+            // Control de edición de texto enriquecido / plano
             rtbContenido = new RichTextBox();
             rtbContenido.Dock = DockStyle.Fill;
-            rtbContenido.Font = new System.Drawing.Font("Consolas", 10f);
-            rtbContenido.ScrollBars = RichTextBoxScrollBars.Both;
-            rtbContenido.WordWrap = false;
-            rtbContenido.AcceptsTab = true;
+            rtbContenido.Font = new System.Drawing.Font("Segoe UI", 11F);
             rtbContenido.TextChanged += RtbContenido_TextChanged;
+            rtbContenido.SelectionChanged += RtbContenido_SelectionChanged;
 
-            // Label status
+            // Barra de estado inferior
             lblStatus = new Label();
             lblStatus.Dock = DockStyle.Bottom;
             lblStatus.Height = 22;
@@ -111,66 +146,64 @@ namespace TxtProcessor
             lblStatus.Text = "Listo";
             lblStatus.BorderStyle = BorderStyle.Fixed3D;
 
+            // Ensamblaje de controles en el formulario principal
             this.Controls.Add(rtbContenido);
             this.Controls.Add(lblArchivo);
             this.Controls.Add(panelBotones);
             this.Controls.Add(lblStatus);
         }
 
-        // ─── NUEVO ────────────────────────────────────────────────────────────────
+        // ─── ACCIONES DE BOTONES ──────────────────────────────────────────────────
         private void BtnNuevo_Click(object sender, EventArgs e)
         {
-            if (!VerificarCambiosSinGuardar()) return;
-
-            rtbContenido.Clear();
-            rutaArchivoActual = string.Empty;
-            haycambios = false;
-            lblArchivo.Text = "Nuevo archivo (sin guardar)";
-            HabilitarControles(true);
-            ActualizarStatus();
+            if (VerificarCambiosSinGuardar())
+            {
+                rtbContenido.Clear();
+                rutaArchivoActual = string.Empty;
+                haycambios = false;
+                lblArchivo.Text = "Nuevo documento de texto";
+                ActualizarStatus();
+                HabilitarControles(true);
+            }
         }
 
-        // ─── ABRIR ────────────────────────────────────────────────────────────────
         private void BtnCargar_Click(object sender, EventArgs e)
         {
-            if (!VerificarCambiosSinGuardar()) return;
-
-            using (OpenFileDialog ofd = new OpenFileDialog())
+            if (VerificarCambiosSinGuardar())
             {
-                ofd.Filter = "Archivos de texto (*.txt)|*.txt|Todos los archivos (*.*)|*.*";
-                ofd.Title = "Abrir archivo de texto";
-
-                if (ofd.ShowDialog() == DialogResult.OK)
+                using (OpenFileDialog ofd = new OpenFileDialog())
                 {
-                    try
+                    ofd.Filter = "Archivos de texto (*.txt)|*.txt|Todos los archivos (*.*)|*.*";
+                    ofd.Title = "Seleccionar archivo de texto";
+
+                    if (ofd.ShowDialog() == DialogResult.OK)
                     {
-                        string contenido = File.ReadAllText(ofd.FileName, Encoding.UTF8);
-                        rtbContenido.Text = contenido;
-                        rutaArchivoActual = ofd.FileName;
-                        haycambios = false;
-                        lblArchivo.Text = $"Archivo: {rutaArchivoActual}";
-                        HabilitarControles(true);
-                        ActualizarStatus();
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Error al abrir el archivo:\n{ex.Message}", "Error",
-                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        CargarArchivoDirecto(ofd.FileName);
                     }
                 }
             }
         }
 
-        // ─── GUARDAR ──────────────────────────────────────────────────────────────
         private void BtnGuardar_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(rutaArchivoActual))
             {
                 BtnGuardarComo_Click(sender, e);
-                return;
             }
-
-            GuardarArchivo(rutaArchivoActual);
+            else
+            {
+                try
+                {
+                    File.WriteAllText(rutaArchivoActual, rtbContenido.Text, Encoding.UTF8);
+                    haycambios = false;
+                    ActualizarStatus();
+                    MessageBox.Show("Archivo guardado con éxito.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error al guardar:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
 
         private void BtnGuardarComo_Click(object sender, EventArgs e)
@@ -178,77 +211,55 @@ namespace TxtProcessor
             using (SaveFileDialog sfd = new SaveFileDialog())
             {
                 sfd.Filter = "Archivos de texto (*.txt)|*.txt";
-                sfd.Title = "Guardar archivo de texto";
-                sfd.FileName = string.IsNullOrEmpty(rutaArchivoActual)
-                    ? "documento.txt"
-                    : Path.GetFileName(rutaArchivoActual);
+                sfd.Title = "Guardar como...";
+                if (!string.IsNullOrEmpty(rutaArchivoActual))
+                    sfd.FileName = Path.GetFileName(rutaArchivoActual);
 
                 if (sfd.ShowDialog() == DialogResult.OK)
-                    GuardarArchivo(sfd.FileName);
+                {
+                    rutaArchivoActual = sfd.FileName;
+                    BtnGuardar_Click(sender, e);
+                    lblArchivo.Text = $"Archivo: {rutaArchivoActual}";
+                }
             }
         }
 
-        private void GuardarArchivo(string ruta)
-        {
-            try
-            {
-                File.WriteAllText(ruta, rtbContenido.Text, Encoding.UTF8);
-                rutaArchivoActual = ruta;
-                haycambios = false;
-                lblArchivo.Text = $"Archivo: {rutaArchivoActual}";
-                lblStatus.Text = $"Guardado: {ruta}";
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error al guardar:\n{ex.Message}", "Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        // ─── BUSCAR / REEMPLAZAR ──────────────────────────────────────────────────
         private void BtnBuscarReemplazar_Click(object sender, EventArgs e)
         {
-            using (BuscarForm form = new BuscarForm(rtbContenido))
+            // Instanciamos pasándole la referencia del RichTextBox de este formulario
+            using (BuscarForm formBusqueda = new BuscarForm(rtbContenido))
             {
-                form.ShowDialog();
-                ActualizarStatus();
+                formBusqueda.ShowDialog(this);
             }
         }
 
-        // ─── ESTADÍSTICAS ─────────────────────────────────────────────────────────
         private void BtnEstadisticas_Click(object sender, EventArgs e)
         {
-            string texto = rtbContenido.Text;
+            int palabras = ContarPalabras(rtbContenido.Text);
+            int caracteres = rtbContenido.Text.Length;
+            int lineas = rtbContenido.Lines.Length;
 
-            int totalCaracteres = texto.Length;
-            int caracteresSinEspacios = texto.Replace(" ", "").Replace("\n", "").Replace("\r", "").Length;
-            int totalLineas = rtbContenido.Lines.Length;
-            int lineasNoVacias = rtbContenido.Lines.Count(l => !string.IsNullOrWhiteSpace(l));
-            int totalPalabras = ContarPalabras(texto);
-            int totalParrafos = texto.Split(new string[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries).Length;
-
-            string msg =
-                $"Caracteres (con espacios):   {totalCaracteres}\n" +
-                $"Caracteres (sin espacios):   {caracteresSinEspacios}\n" +
-                $"Palabras:                    {totalPalabras}\n" +
-                $"Líneas totales:              {totalLineas}\n" +
-                $"Líneas no vacías:            {lineasNoVacias}\n" +
-                $"Párrafos:                    {totalParrafos}";
-
-            MessageBox.Show(msg, "Estadísticas del documento",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show($"Estadísticas del documento:\n\n" +
+                            $"• Total de Líneas: {lineas}\n" +
+                            $"• Total de Palabras: {palabras}\n" +
+                            $"• Total de Caracteres: {caracteres}",
+                            "Estadísticas del Texto", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        private int ContarPalabras(string texto)
-        {
-            if (string.IsNullOrWhiteSpace(texto)) return 0;
-            return Regex.Matches(texto.Trim(), @"\b\w+\b").Count;
-        }
-
-        // ─── EVENTOS AUXILIARES ───────────────────────────────────────────────────
+        // ─── CONTROL DE EVENTOS INTERNOS Y MÉTODOS AUXILIARES ─────────────────────
         private void RtbContenido_TextChanged(object sender, EventArgs e)
         {
             haycambios = true;
+            ActualizarStatus();
+        }
+
+        private void rtbContenido_SelectionChanged(object sender, EventArgs e)
+        {
+            ActualizarStatus();
+        }
+
+        private void RtbContenido_SelectionChanged(object sender, EventArgs e)
+        {
             ActualizarStatus();
         }
 
@@ -261,6 +272,12 @@ namespace TxtProcessor
             lblStatus.Text = $"Línea: {linea}   Col: {col}   Palabras: {palabras}   Caracteres: {rtbContenido.Text.Length}{modificado}";
         }
 
+        private int ContarPalabras(string texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto)) return 0;
+            return Regex.Matches(texto, @"\b\w+\b").Count;
+        }
+
         private bool VerificarCambiosSinGuardar()
         {
             if (!haycambios) return true;
@@ -269,7 +286,7 @@ namespace TxtProcessor
                 "Hay cambios sin guardar. ¿Deseas guardar antes de continuar?",
                 "Cambios sin guardar", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
 
-            if (r == DialogResult.Yes) { BtnGuardar_Click(null, null); return true; }
+            if (r == DialogResult.Yes) { BtnGuardar_Click(null, null); return !haycambios; }
             if (r == DialogResult.No) return true;
             return false;
         }
